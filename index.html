@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>账单退款对账看板</title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        background: #f0f2f5;
+        color: #1f2937;
+        padding: 24px;
+        line-height: 1.6;
+    }
+    h1 {
+        font-size: 24px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        color: #111827;
+    }
+    h2 {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 16px;
+        color: #374151;
+        border-left: 4px solid #3b82f6;
+        padding-left: 12px;
+    }
+    .card {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+
+    /* ====== 文件上传区 ====== */
+    .upload-card {
+        background: linear-gradient(135deg, #eff6ff, #f0fdf4);
+        border: 2px dashed #3b82f6;
+        border-radius: 12px;
+        padding: 28px;
+        text-align: center;
+        margin-bottom: 24px;
+        transition: all 0.2s;
+    }
+    .upload-card:hover {
+        border-color: #2563eb;
+        background: linear-gradient(135deg, #dbeafe, #dcfce7);
+    }
+    .upload-card.has-files {
+        border-style: solid;
+        border-color: #059669;
+        background: linear-gradient(135deg, #ecfdf5, #f0fdf4);
+    }
+    .upload-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #1e40af;
+        margin-bottom: 6px;
+    }
+    .upload-subtitle {
+        font-size: 13px;
+        color: #64748b;
+        margin-bottom: 14px;
+    }
+    .file-input-wrapper {
+        position: relative;
+        display: inline-block;
+    }
+    .file-input-wrapper input[type="file"] {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0; left: 0;
+        opacity: 0;
+        cursor: pointer;
+    }
+    .upload-btn {
+        display: inline-block;
+        padding: 12px 28px;
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .upload-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+    }
+    .file-list {
+        margin-top: 14px;
+        font-size: 13px;
+        color: #374151;
+    }
+    .file-list .file-item {
+        padding: 4px 0;
+        color: #059669;
+    }
+    .upload-tip {
+        margin-top: 10px;
+        font-size: 12px;
+        color: #94a3b8;
+    }
+    .refresh-btn {
+        margin-left: 10px;
+        padding: 10px 20px;
+        background: #fff;
+        color: #3b82f6;
+        border: 2px solid #3b82f6;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .refresh-btn:hover { background: #eff6ff; }
+
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    .kpi-box {
+        background: linear-gradient(135deg, #f8fafc, #eef2ff);
+        border-radius: 10px;
+        padding: 18px 20px;
+        border: 1px solid #e2e8f0;
+    }
+    .kpi-label {
+        font-size: 13px;
+        color: #64748b;
+        margin-bottom: 6px;
+    }
+    .kpi-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1e293b;
+        font-variant-numeric: tabular-nums;
+    }
+    .kpi-value.highlight { color: #2563eb; }
+    .kpi-value.refund { color: #dc2626; }
+    .kpi-value.actual { color: #059669; }
+    .kpi-value.muted { color: #64748b; font-size: 18px; }
+    .download-btn {
+        display: block;
+        width: 100%;
+        margin-top: 10px;
+        padding: 10px 16px;
+        background: linear-gradient(135deg, #059669, #047857);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .download-btn:hover {
+        background: linear-gradient(135deg, #047857, #065f46);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(5,150,105,0.3);
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+    .main-table { table-layout: auto; }
+    .daily-table { table-layout: fixed; }
+    .main-table th.amount, .main-table td.amount { text-align: right; }
+    thead th {
+        background: #f1f5f9;
+        color: #475569;
+        font-weight: 600;
+        text-align: left;
+        padding: 12px 14px;
+        border-bottom: 2px solid #e2e8f0;
+        white-space: nowrap;
+    }
+    .daily-table thead th, .main-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: #f1f5f9;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+    }
+
+    .source-tabs {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 18px;
+    }
+    .source-tab {
+        padding: 9px 22px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 999px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #475569;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .source-tab:hover {
+        border-color: #3b82f6;
+        color: #2563eb;
+    }
+    .source-tab.active {
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        border-color: #2563eb;
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    }
+    .table-wrap { overflow-x: visible; }
+    tbody td {
+        padding: 10px 14px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    tbody tr:hover { background: #f8fafc; }
+    .order-row { cursor: pointer; }
+    .order-id { font-family: "SF Mono", Monaco, Consolas, monospace; font-size: 13px; color: #1e40af; }
+    .amount { text-align: right; font-variant-numeric: tabular-nums; }
+    .refund-color { color: #dc2626; }
+    .actual-color { color: #059669; font-weight: 600; }
+    .type-consume { color: #2563eb; font-weight: 600; }
+    .type-refund { color: #dc2626; font-weight: 600; }
+    .expand-btn {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        line-height: 20px;
+        text-align: center;
+        cursor: pointer;
+        font-size: 10px;
+        color: #94a3b8;
+        user-select: none;
+        transition: transform 0.2s;
+    }
+    .expand-btn.open { transform: rotate(180deg); }
+    .inner-indent { border-bottom: 1px solid #f1f5f9; background: #fafbfc; }
+    .inner-table { width: 100%; margin: 0; box-shadow: none; background: #fafbfc; }
+    .inner-table th { background: #e2e8f0; font-size: 12px; padding: 6px 10px; text-align: left; border-bottom: 1px solid #cbd5e1; }
+    .inner-table td { padding: 6px 10px; font-size: 12px; border-bottom: 1px dashed #e2e8f0; background: #fafbfc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .detail-row td { padding: 6px 10px; font-size: 12px; color: #64748b; }
+
+    .filter-select {
+        display: block;
+        width: 100%;
+        margin-top: 4px;
+        padding: 4px 6px;
+        font-size: 12px;
+        color: #334155;
+        background: #fff;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        cursor: pointer;
+        outline: none;
+    }
+    .filter-select:focus { border-color: #3b82f6; }
+    .filter-count { font-size: 12px; color: #64748b; font-weight: 400; margin-left: 8px; }
+
+    .chart-modal {
+        display: none;
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+    }
+    .chart-modal.show { display: flex; }
+    .chart-modal-box {
+        background: #fff;
+        border-radius: 12px;
+        width: min(960px, 94vw);
+        height: min(600px, 86vh);
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    .chart-modal-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .chart-modal-title { font-size: 16px; font-weight: 600; color: #1e293b; }
+    .chart-modal-close {
+        background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b;
+        padding: 4px 10px; border-radius: 6px; transition: background 0.15s;
+    }
+    .chart-modal-close:hover { background: #f1f5f9; color: #1e293b; }
+    .chart-modal-body { flex: 1; padding: 16px; min-height: 0; }
+    #chart-container { width: 100%; height: 100%; }
+
+    /* 版本信息 */
+    .version-badge {
+        display: inline-block;
+        margin-left: 12px;
+        padding: 3px 10px;
+        background: #e2e8f0;
+        color: #64748b;
+        font-size: 12px;
+        border-radius: 999px;
+        font-weight: 500;
+    }
+
+    @media (max-width: 768px) {
+        body { padding: 12px; }
+        .card { padding: 16px; }
+        table { font-size: 12px; }
+        thead th, tbody td { padding: 8px 6px; }
+        .table-wrap { overflow-x: auto; }
+    }
+</style>
+</head>
+<body>
+<h1>📊 账单退款对账看板<span class="version-badge" id="version-badge">v1.0</span></h1>
+
+<!-- 文件上传区 -->
+<div class="upload-card" id="upload-card">
+    <div class="upload-title">📂 选择账单 Excel 文件</div>
+    <div class="upload-subtitle">支持同时上传多个文件，页面内完成计算，数据不会上传到任何服务器</div>
+    <div style="margin:12px 0;">
+        <span class="file-input-wrapper">
+            <button class="upload-btn" onclick="document.getElementById('file-input').click()">选择 Excel 文件</button>
+            <input type="file" id="file-input" multiple accept=".xlsx,.xls" />
+        </span>
+        <button class="refresh-btn" id="refresh-btn" style="display:none;" onclick="clearAndReselect()">重新选择</button>
+    </div>
+    <div class="file-list" id="file-list"></div>
+    <div class="upload-tip">上传后点击浏览器刷新即可获取最新版本更新 ✅</div>
+</div>
+
+<!-- 数据源切换标签栏 -->
+<div class="source-tabs" id="source-tabs" style="display:none;"></div>
+
+<!-- 面板容器 -->
+<div id="panels"></div>
+
+<!-- SheetJS 本地 -->
+<script src="assets/xlsx.full.min.js"></script>
+<!-- ECharts 本地 -->
+<script src="assets/echarts.min.js"></script>
+
+<script>
+/* ============================================================
+ *  常量定义（对应 process.py）
+ * ============================================================ */
+
+/** 必需的列名，Excel 表头必须包含 */
+const REQUIRED_COLUMNS = ['订单', '交易类型', '交易金额(个)', '状态', '资金操作人', '时间'];
+
+/** 金额列别名：不同导出版本可能叫「交易金额(个)」或「交易金额(元)」 */
+const COLUMN_ALIASES = {
+    '交易金额(个)': ['交易金额(个)', '交易金额(元)']
+};
+
+/** 退款类型名称集合 */
+const REFUND_TYPES = new Set(['退豆', '退还']);
+
+/** 充值类型名称集合 */
+const RECHARGE_TYPES = new Set(['充值']);
+
+/* ============================================================
+ *  辅助函数
+ * ============================================================ */
+
+/**
+ * 金额格式化：千分位分隔 + 固定两位小数
+ * @param {number} value - 金额数值
+ * @returns {string} 格式化后的金额，如 "296,554.28"
+ */
+function fmt_money(value) {
+    const num = Number(value) || 0;
+    return num.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/**
+ * 从订单号中提取 Unix 时间戳并转本地日期
+ * 订单号格式：1793116800_654400，前面 10 位是秒级 Unix 时间戳
+ * @param {string} orderId - 基础订单号（不含"退款"后缀）
+ * @returns {string} YYYY-MM-DD 日期字符串，解析失败返回 "未知"
+ */
+function get_date_from_order(orderId) {
+    try {
+        const ts = parseInt(String(orderId).split('_')[0], 10);
+        if (isNaN(ts)) return '未知';
+        // 毫秒级时间戳（13位）转秒
+        const seconds = ts > 1e12 ? ts / 1000 : ts;
+        const d = new Date(seconds * 1000);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    } catch (e) {
+        return '未知';
+    }
+}
+
+/**
+ * 数值转整数分（避免浮点累加误差），内部计算用整数
+ * @param {*} val - 任意值，尝试转数字再取整
+ * @returns {number} 乘以 100 后的整数
+ */
+function toCents(val) {
+    const num = parseFloat(String(val).replace(/,/g, ''));
+    return Math.round((isNaN(num) ? 0 : num) * 100);
+}
+
+/* ============================================================
+ *  Excel 解析
+ * ============================================================ */
+
+/**
+ * 读取单个 Excel 文件，找到包含必需列的工作表并清洗数据
+ * @param {File} file - HTML File 对象
+ * @returns {Promise<Array>} 清洗后的行数组，每行是一个对象；找不到可用表时返回 []
+ */
+async function loadExcelData(file) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+
+                let df = null;
+                for (const sheetName of workbook.SheetNames) {
+                    const sheet = workbook.Sheets[sheetName];
+                    // 读成对象数组，第一行作为表头
+                    const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+                    if (!rows.length) continue;
+
+                    // 统一别名列名（如 交易金额(元) -> 交易金额(个)）
+                    const renamed = rows.map(row => {
+                        const newRow = {};
+                        for (const [canon, aliases] of Object.entries(COLUMN_ALIASES)) {
+                            for (const alias of aliases) {
+                                if (alias in row) {
+                                    newRow[canon] = row[alias];
+                                    break;
+                                }
+                            }
+                        }
+                        // 复制其他非别名列
+                        for (const [k, v] of Object.entries(row)) {
+                            const matched = Object.values(COLUMN_ALIASES).some(a => a.includes(k));
+                            if (!matched) newRow[k] = v;
+                        }
+                        return newRow;
+                    });
+
+                    // 检查必需列是否都存在
+                    const headers = Object.keys(renamed[0]);
+                    const missing = REQUIRED_COLUMNS.filter(c => !headers.includes(c));
+                    if (!missing.length) {
+                        df = renamed;
+                        break;
+                    }
+                }
+
+                if (!df) { resolve([]); return; }
+
+                // 清洗：只保留有效数据行 + 金额转整数分
+                const cleaned = [];
+                for (const row of df) {
+                    const order = String(row['订单'] || '').trim();
+                    const tradeType = String(row['交易类型'] || '').trim();
+                    if (!order || !tradeType) continue;
+
+                    const cents = toCents(row['交易金额(个)']);
+                    if (cents === 0 && parseFloat(row['交易金额(个)']) === 0) {
+                        // 金额为 0 跳过（可能是空行）
+                        if (!row['交易金额(个)']) continue;
+                    }
+
+                    // 时间：XLSX cellDates 已返回 Date 对象，否则尝试解析
+                    let timeStr = '';
+                    if (row['时间']) {
+                        const d = row['时间'] instanceof Date ? row['时间'] : new Date(row['时间']);
+                        if (!isNaN(d.getTime())) {
+                            const hh = String(d.getHours()).padStart(2, '0');
+                            const mm = String(d.getMinutes()).padStart(2, '0');
+                            timeStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${hh}:${mm}`;
+                        }
+                    }
+
+                    cleaned.push({
+                        订单: order,
+                        交易类型: tradeType,
+                        '交易金额(个)': cents,   // 单位：分
+                        状态: String(row['状态'] || '').trim(),
+                        资金操作人: String(row['资金操作人'] || '').trim(),
+                        时间: timeStr
+                    });
+                }
+
+                resolve(cleaned);
+            } catch (err) {
+                console.error('读取 Excel 失败:', err);
+                resolve([]);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+/* ============================================================
+ *  数据处理（移植自 process.py 的核心逻辑）
+ * ============================================================ */
+
+/**
+ * 匹配所有消费订单及其退款
+ * 规则与 process.py 完全一致：
+ * - 退款单号以"退款"结尾，去掉后缀后匹配消费订单
+ * - 同一基础订单号的多笔消费和退款分别累加
+ * - 日期归属：用订单号里的 Unix 时间戳转本地日期
+ * @param {Array} df - 清洗后的行数组
+ * @returns {Array} 订单净额列表
+ */
+function match_refund_orders(df) {
+    const consumeMap = {};  // baseOrder -> [rows]
+    const refundMap = {};   // baseOrder -> [rows]
+
+    for (const row of df) {
+        const orderId = row['订单'];
+        const tradeType = row['交易类型'];
+
+        if (orderId.endsWith('退款')) {
+            const baseOrder = orderId.slice(0, -2);
+            if (REFUND_TYPES.has(tradeType)) {
+                (refundMap[baseOrder] = refundMap[baseOrder] || []).push(row);
+            }
+        } else {
+            if (tradeType === '消费') {
+                (consumeMap[orderId] = consumeMap[orderId] || []).push(row);
+            }
+        }
+    }
+
+    const allBaseOrders = new Set([...Object.keys(consumeMap), ...Object.keys(refundMap)]);
+    const matched = [];
+
+    for (const baseOrder of allBaseOrders) {
+        const consumeRows = consumeMap[baseOrder] || [];
+        const refundRows = refundMap[baseOrder] || [];
+
+        let consumeTotal = 0, refundTotal = 0;
+        consumeRows.forEach(r => consumeTotal += r['交易金额(个)']);
+        refundRows.forEach(r => refundTotal += r['交易金额(个)']);
+        const actualCost = consumeTotal - refundTotal;
+
+        const orderDate = get_date_from_order(baseOrder);
+
+        // 收集操作人（去重）
+        const opSet = new Set();
+        [...consumeRows, ...refundRows].forEach(r => {
+            if (r['资金操作人']) opSet.add(r['资金操作人']);
+        });
+
+        // 明细交易记录（按时间排序）
+        const details = [];
+        consumeRows.forEach(r => {
+            details.push({
+                时间: r['时间'],
+                类型: '消费',
+                金额: r['交易金额(个)'],
+                操作人: r['资金操作人'],
+                状态: r['状态']
+            });
+        });
+        refundRows.forEach(r => {
+            details.push({
+                时间: r['时间'],
+                类型: r['交易类型'],
+                金额: r['交易金额(个)'],
+                操作人: r['资金操作人'],
+                状态: r['状态']
+            });
+        });
+        details.sort((a, b) => a['时间'].localeCompare(b['时间']));
+
+        matched.push({
+            订单号: baseOrder,
+            日期: orderDate,
+            消费总额: consumeTotal,
+            退款总额: refundTotal,
+            实际支出: actualCost,
+            操作人: [...opSet].join('、'),
+            消费笔数: consumeRows.length,
+            退款笔数: refundRows.length,
+            明细: details
+        });
+    }
+
+    // 按日期倒序
+    matched.sort((a, b) => b['日期'].localeCompare(a['日期']));
+    return matched;
+}
+
+/**
+ * 按日期汇总充值交易金额（充值不参与消费/退款净额计算，但在日汇总表单独列出）
+ * @param {Array} df - 清洗后的行数组
+ * @returns {Object} 日期 -> 金额(分) 的字典
+ */
+function aggregate_recharge(df) {
+    const daily = {};
+    for (const row of df) {
+        if (!RECHARGE_TYPES.has(row['交易类型'])) continue;
+        const orderId = row['订单'];
+        let orderDate = get_date_from_order(orderId);
+        // 充值订单号可能是占位词，回退用时间列
+        if (orderDate === '未知' && row['时间']) {
+            orderDate = row['时间'].slice(0, 10);
+        }
+        daily[orderDate] = (daily[orderDate] || 0) + row['交易金额(个)'];
+    }
+    return daily;
+}
+
+/**
+ * 构建汇总看板数据：总体统计 + 按日期汇总
+ * @param {Array} matched - match_refund_orders 的返回值
+ * @param {Object} rechargeDaily - aggregate_recharge 的返回值
+ * @returns {Object} 汇总数据
+ */
+function build_summary(matched, rechargeDaily) {
+    let totalConsume = 0, totalRefund = 0;
+    let totalConsumeTx = 0, totalRefundTx = 0;
+    let refundedOrders = 0, pureConsumeOrders = 0;
+
+    matched.forEach(m => {
+        totalConsume += m['消费总额'];
+        totalRefund += m['退款总额'];
+        totalConsumeTx += m['消费笔数'];
+        totalRefundTx += m['退款笔数'];
+        if (m['退款笔数'] > 0) refundedOrders++;
+        else if (m['消费笔数'] > 0) pureConsumeOrders++;
+    });
+
+    const totalActual = totalConsume - totalRefund;
+    const totalRecharge = Object.values(rechargeDaily).reduce((s, v) => s + v, 0);
+
+    // 收集所有日期
+    const allDates = new Set([
+        ...matched.map(m => m['日期']),
+        ...Object.keys(rechargeDaily)
+    ]);
+
+    // 按日期汇总
+    const dailyMap = {};
+    allDates.forEach(d => {
+        dailyMap[d] = { 消费总额: 0, 退款总额: 0, 实际支出: 0, 充值总额: 0, 订单数: 0 };
+    });
+    matched.forEach(m => {
+        const d = m['日期'];
+        dailyMap[d]['消费总额'] += m['消费总额'];
+        dailyMap[d]['退款总额'] += m['退款总额'];
+        dailyMap[d]['实际支出'] += m['实际支出'];
+        dailyMap[d]['订单数']++;
+    });
+    Object.entries(rechargeDaily).forEach(([d, amt]) => {
+        if (!dailyMap[d]) dailyMap[d] = { 消费总额: 0, 退款总额: 0, 实际支出: 0, 充值总额: 0, 订单数: 0 };
+        dailyMap[d]['充值总额'] += amt;
+    });
+
+    // 倒序排列
+    const dailyList = Object.entries(dailyMap)
+        .map(([d, v]) => ({ 日期: d, ...v }))
+        .sort((a, b) => b['日期'].localeCompare(a['日期']));
+
+    const refundRate = totalConsume > 0 ? ((totalRefund / totalConsume) * 100).toFixed(2) + '%' : '0%';
+
+    return {
+        '总体': {
+            '订单总数': matched.length,
+            '有退款订单数': refundedOrders,
+            '全额消费订单数': pureConsumeOrders,
+            '消费总笔数': totalConsumeTx,
+            '退款总笔数': totalRefundTx,
+            '充值总金额': totalRecharge,
+            '消费总金额': totalConsume,
+            '退款总金额': totalRefund,
+            '实际支出总计': totalActual,
+            '退款率': refundRate
+        },
+        '按日期': dailyList
+    };
+}
+
+/* ============================================================
+ *  渲染逻辑（生成 DOM）
+ * ============================================================ */
+
+/**
+ * 把整数"分"转回"元"（用于显示和导出）
+ * @param {number} cents - 整数，单位分
+ * @returns {number} 单位元的浮点数
+ */
+function toYuan(cents) { return Number((cents / 100).toFixed(2)); }
+
+/**
+ * 渲染所有数据源的面板
+ * @param {Array} datasets - [{ name, file, matched, summary }]
+ */
+function renderAll(datasets) {
+    const tabsEl = document.getElementById('source-tabs');
+    const panelsEl = document.getElementById('panels');
+    tabsEl.style.display = datasets.length > 1 ? 'flex' : 'none';
+    tabsEl.innerHTML = '';
+    panelsEl.innerHTML = '';
+
+    datasets.forEach((ds, i) => {
+        // 数据源标签
+        const tab = document.createElement('button');
+        tab.className = 'source-tab' + (i === 0 ? ' active' : '');
+        tab.textContent = ds.name;
+        tab.onclick = () => switchSource(i);
+        tabsEl.appendChild(tab);
+
+        // 面板
+        const panel = renderPanel(ds, i);
+        panel.style.display = i === 0 ? 'block' : 'none';
+        panelsEl.appendChild(panel);
+    });
+}
+
+/**
+ * 渲染单个数据源面板
+ * @param {Object} ds - 数据源对象
+ * @param {number} idx - 面板索引
+ * @returns {HTMLElement} 面板 DOM
+ */
+function renderPanel(ds, idx) {
+    const matched = ds.matched;
+    const summary = ds.summary;
+    const nowStr = new Date().toLocaleString('zh-CN', { hour12: false });
+    const sourceInfo = `数据来源：${ds.file}　|　生成时间：${nowStr}`;
+
+    const panel = document.createElement('div');
+    panel.className = 'source-panel';
+    panel.dataset.source = ds.name;
+
+    // 明细表筛选选项
+    const filterDates = [...new Set(matched.map(m => m['日期']))].sort().reverse();
+    const filterOps = [...new Set(matched.flatMap(m => m['操作人'].split('、').filter(Boolean)))].sort();
+    const dateOptions = '<option value="">全部日期</option>' + filterDates.map(v => `<option value="${v}">${v}</option>`).join('');
+    const opOptions = '<option value="">全部操作人</option>' + filterOps.map(v => `<option value="${v}">${v}</option>`).join('');
+
+    // 明细表
+    const detailRowsHtml = matched.map(m => {
+        const detailItems = m['明细'].map(d => `
+                <tr class="detail-row">
+                    <td>${d['时间']}</td>
+                    <td class="${d['类型'] === '消费' ? 'type-consume' : 'type-refund'}">${d['类型']}</td>
+                    <td class="amount">${fmt_money(toYuan(d['金额']))}</td>
+                    <td>${d['操作人']}</td>
+                    <td>${d['状态']}</td>
+                </tr>`).join('');
+
+        return `
+            <tr class="order-row" data-date="${m['日期']}" data-ops="${m['操作人']}">
+                <td class="expand-cell"><span class="expand-btn" onclick="toggleDetail(this)">▼</span></td>
+                <td class="order-id">${m['订单号']}</td>
+                <td>${m['日期']}</td>
+                <td>${m['操作人']}</td>
+                <td class="amount">${fmt_money(toYuan(m['消费总额']))}</td>
+                <td class="amount refund-color">${fmt_money(toYuan(m['退款总额']))}</td>
+                <td class="amount actual-color">${fmt_money(toYuan(m['实际支出']))}</td>
+            </tr>
+            <tr class="detail-container" style="display:none;">
+                <td class="inner-indent"></td>
+                <td class="inner-indent"></td>
+                <td class="inner-indent"></td>
+                <td colspan="4" style="padding:0;">
+                    <table class="inner-table">
+                        <colgroup>
+                            <col style="width:22%;">
+                            <col style="width:14%;">
+                            <col style="width:16%;">
+                            <col style="width:16%;">
+                            <col style="width:32%;">
+                        </colgroup>
+                        <thead>
+                            <tr>
+                                <th>时间</th>
+                                <th>类型</th>
+                                <th class="amount">交易金额(个)</th>
+                                <th>操作人</th>
+                                <th>状态</th>
+                            </tr>
+                        </thead>
+                        <tbody>${detailItems}</tbody>
+                    </table>
+                </td>
+            </tr>`;
+    }).join('');
+
+    // 日汇总表
+    const dailyRowsHtml = summary['按日期'].map(d => `
+            <tr>
+                <td>${d['日期']}</td>
+                <td>${d['订单数']}</td>
+                <td class="amount">${fmt_money(toYuan(d['充值总额']))}</td>
+                <td class="amount">${fmt_money(toYuan(d['消费总额']))}</td>
+                <td class="amount refund-color">${fmt_money(toYuan(d['退款总额']))}</td>
+                <td class="amount actual-color">${fmt_money(toYuan(d['实际支出']))}</td>
+            </tr>`).join('');
+
+    const t = summary['总体'];
+
+    panel.innerHTML = `
+<div style="margin-bottom:16px; font-size:13px; color:#64748b;">${sourceInfo}</div>
+
+<!-- 总体看板 -->
+<div class="card">
+    <h2>📈 总体看板</h2>
+    <div class="kpi-grid">
+        <div class="kpi-box">
+            <div class="kpi-label">订单总数</div>
+            <div class="kpi-value highlight">${t['订单总数']}</div>
+            <div class="kpi-value muted">${t['有退款订单数']}笔有退款 / ${t['全额消费订单数']}笔全额消费</div>
+        </div>
+        <div class="kpi-box">
+            <div class="kpi-label">充值总金额</div>
+            <div class="kpi-value">${fmt_money(toYuan(t['充值总金额']))}</div>
+        </div>
+        <div class="kpi-box">
+            <div class="kpi-label">消费总金额</div>
+            <div class="kpi-value highlight">${fmt_money(toYuan(t['消费总金额']))}</div>
+        </div>
+        <div class="kpi-box">
+            <div class="kpi-label">退款总金额</div>
+            <div class="kpi-value refund">${fmt_money(toYuan(t['退款总金额']))}</div>
+        </div>
+        <div class="kpi-box">
+            <div class="kpi-label">实际支出总计</div>
+            <div class="kpi-value actual">${fmt_money(toYuan(t['实际支出总计']))}</div>
+        </div>
+        <div class="kpi-box" style="background:linear-gradient(135deg,#ecfdf5,#d1fae5);">
+            <div class="kpi-label">📊 数据操作</div>
+            <button onclick="downloadExcel(${idx})" class="download-btn" style="margin-top:8px;">下载汇总表</button>
+            <button onclick="openChart(${idx})" class="download-btn" style="margin-top:8px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);">查看图表</button>
+        </div>
+    </div>
+
+    <!-- 按日期汇总 -->
+    <h2 style="margin-top: 28px;">📅 按日期汇总</h2>
+    <div class="table-wrap">
+    <table class="daily-table">
+        <thead>
+            <tr>
+                <th>时间</th>
+                <th>订单数</th>
+                <th class="amount">充值总额</th>
+                <th class="amount">消费总额</th>
+                <th class="amount">退款总额</th>
+                <th class="amount">实际支出</th>
+            </tr>
+        </thead>
+        <tbody>${dailyRowsHtml}
+            <tr style="background:#f1f5f9;font-weight:700;border-top:2px solid #cbd5e1;">
+                <td>总计</td>
+                <td>${t['订单总数']}</td>
+                <td class="amount">${fmt_money(toYuan(t['充值总金额']))}</td>
+                <td class="amount">${fmt_money(toYuan(t['消费总金额']))}</td>
+                <td class="amount refund-color">${fmt_money(toYuan(t['退款总金额']))}</td>
+                <td class="amount actual-color">${fmt_money(toYuan(t['实际支出总计']))}</td>
+            </tr>
+        </tbody>
+    </table>
+    </div>
+</div>
+
+<!-- 明细表 -->
+<div class="card">
+    <h2>📋 订单明细（点击展开交易详情）<span class="filter-count" id="filter-count-${idx}"></span></h2>
+    <div class="table-wrap">
+    <table class="main-table">
+        <colgroup>
+            <col style="width:36px;">
+            <col style="width:24%;">
+            <col style="width:13%;">
+            <col style="width:15%;">
+            <col style="width:16%;">
+            <col style="width:16%;">
+            <col style="width:16%;">
+        </colgroup>
+        <thead>
+            <tr>
+                <th></th>
+                <th>订单号</th>
+                <th>日期
+                    <select class="filter-select" id="filter-date-${idx}" onchange="filterOrders(${idx})">
+                        ${dateOptions}
+                    </select>
+                </th>
+                <th>操作人
+                    <select class="filter-select" id="filter-op-${idx}" onchange="filterOrders(${idx})">
+                        ${opOptions}
+                    </select>
+                </th>
+                <th class="amount">消费总额</th>
+                <th class="amount">退款总额</th>
+                <th class="amount">实际支出</th>
+            </tr>
+        </thead>
+        <tbody id="order-tbody-${idx}">${detailRowsHtml}</tbody>
+    </table>
+    </div>
+</div>
+`;
+
+    // 初始化筛选计数
+    setTimeout(() => filterOrders(idx), 0);
+    return panel;
+}
+
+/* ============================================================
+ *  前端交互（从 process.py 的 HTML 直接移植）
+ * ============================================================ */
+
+/** 展开/收起订单明细 */
+function toggleDetail(btn) {
+    const row = btn.closest('.order-row');
+    const nextRow = row.nextElementSibling;
+    const isOpen = nextRow.style.display !== 'none';
+    btn.classList.toggle('open');
+    nextRow.style.display = isOpen ? 'none' : 'table-row';
+}
+
+/** 切换数据源面板 */
+function switchSource(idx) {
+    document.querySelectorAll('.source-panel').forEach((p, i) => {
+        p.style.display = i === idx ? 'block' : 'none';
+    });
+    document.querySelectorAll('.source-tab').forEach((b, i) => {
+        b.classList.toggle('active', i === idx);
+    });
+    filterOrders(idx);
+}
+
+/** 按日期/操作人筛选订单 */
+function filterOrders(idx) {
+    const dateVal = document.getElementById('filter-date-' + idx).value;
+    const opVal = document.getElementById('filter-op-' + idx).value;
+    const rows = document.querySelectorAll('#order-tbody-' + idx + ' .order-row');
+    let visible = 0;
+    rows.forEach(row => {
+        const matchDate = !dateVal || row.dataset.date === dateVal;
+        const ops = (row.dataset.ops || '').split('、');
+        const matchOp = !opVal || ops.includes(opVal);
+        const show = matchDate && matchOp;
+        row.style.display = show ? '' : 'none';
+        const detailRow = row.nextElementSibling;
+        if (detailRow && detailRow.classList.contains('detail-container')) {
+            detailRow.style.display = 'none';
+            const btn = row.querySelector('.expand-btn');
+            if (btn) btn.classList.remove('open');
+        }
+        if (show) visible++;
+    });
+    const counter = document.getElementById('filter-count-' + idx);
+    if (counter) counter.textContent = visible + ' / ' + rows.length + ' 单';
+}
+
+/** 导出当前面板的每日汇总表为 Excel */
+function downloadExcel(idx) {
+    const panel = document.getElementById('panels').querySelector('.source-panel[style*="display: block"]') ||
+                  document.querySelectorAll('.source-panel')[idx];
+    if (!panel) return;
+    // 直接按 idx 找
+    const panels = document.querySelectorAll('.source-panel');
+    const targetPanel = panels[idx];
+    const table = targetPanel.querySelector('.daily-table');
+    const sourceName = targetPanel.dataset.source || '';
+    const rows = table.querySelectorAll('tbody tr');
+
+    const data = [];
+    for (let i = 0; i < rows.length; i++) {
+        const cells = rows[i].querySelectorAll('td');
+        const label = cells[0].textContent.trim();
+        if (label === '总计') continue;
+        const row = [label];
+        for (let c = 1; c <= 5; c++) {
+            const str = cells[c].textContent.trim().replace(/,/g, '');
+            row.push(parseFloat(str) || 0);
+        }
+        data.push(row);
+    }
+    const totals = ['总计', 0, 0, 0, 0, 0];
+    data.forEach(r => {
+        for (let c = 1; c <= 5; c++) totals[c] = Math.round((totals[c] + r[c]) * 100) / 100;
+    });
+    data.push(totals);
+
+    const sheetData = [['时间', '订单数', '充值总额', '消费总额', '退款总额', '实际支出'], ...data];
+    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+    ws['!cols'] = [{ wch: 14 }, { wch: 10 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }];
+    for (let r = 1; r < sheetData.length; r++) {
+        for (const c of [2, 3, 4, 5]) {
+            const addr = XLSX.utils.encode_cell({ r, c });
+            if (ws[addr]) ws[addr].z = '#,##0.00';
+        }
+    }
+    const totalRowIdx = sheetData.length - 1;
+    for (let c = 0; c <= 5; c++) {
+        const addr = XLSX.utils.encode_cell({ r: totalRowIdx, c });
+        if (ws[addr]) ws[addr].s = { bold: true };
+    }
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '每日汇总');
+    const now = new Date();
+    const fname = `每日汇总_${sourceName}_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.xlsx`;
+    XLSX.writeFile(wb, fname);
+}
+
+let chartModal = null;
+let chartInstance = null;
+
+/** 打开图表弹窗并渲染 ECharts */
+function openChart(idx) {
+    const panels = document.querySelectorAll('.source-panel');
+    const panel = panels[idx];
+    const table = panel.querySelector('.daily-table');
+    const sourceName = panel.dataset.source || '';
+    const rows = table.querySelectorAll('tbody tr');
+    const data = [];
+    for (let i = 0; i < rows.length; i++) {
+        const cells = rows[i].querySelectorAll('td');
+        const label = cells[0].textContent.trim();
+        if (label === '总计') continue;
+        const nums = [];
+        for (let c = 1; c <= 5; c++) {
+            const str = cells[c].textContent.trim().replace(/,/g, '');
+            nums.push(parseFloat(str) || 0);
+        }
+        data.push({ date: label, orders: nums[0], recharge: nums[1], consume: nums[2], refund: nums[3], actual: nums[4] });
+    }
+    if (!data.length) return;
+
+    if (!chartModal) {
+        chartModal = document.createElement('div');
+        chartModal.className = 'chart-modal';
+        chartModal.innerHTML = `
+        <div class="chart-modal-box">
+            <div class="chart-modal-header">
+                <div class="chart-modal-title" id="chart-title"></div>
+                <button class="chart-modal-close" onclick="closeChart()">✕</button>
+            </div>
+            <div class="chart-modal-body"><div id="chart-container"></div></div>
+        </div>`;
+        chartModal.addEventListener('click', (e) => { if (e.target === chartModal) closeChart(); });
+        document.body.appendChild(chartModal);
+    }
+    chartModal.classList.add('show');
+    document.getElementById('chart-title').textContent = '📈 每日数据图表 — ' + sourceName;
+
+    const container = document.getElementById('chart-container');
+    if (chartInstance) chartInstance.dispose();
+    chartInstance = echarts.init(container);
+
+    const option = {
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'cross' },
+            formatter: function(params) {
+                let tip = params[0].axisValue + '<br/>';
+                params.forEach(p => {
+                    const val = p.value != null ? p.value.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '-';
+                    tip += p.marker + p.seriesName + '：' + val + '<br/>';
+                });
+                return tip;
+            }
+        },
+        legend: { data: ['充值总额', '消费总额', '退款总额', '实际支出'], top: 8 },
+        grid: { left: 60, right: 30, top: 50, bottom: 80 },
+        dataZoom: [
+            { type: 'inside', start: 0, end: 100 },
+            { type: 'slider', start: 0, end: 100, bottom: 10, height: 20 }
+        ],
+        xAxis: {
+            type: 'category',
+            data: data.map(d => d.date),
+            axisLabel: { rotate: 45, fontSize: 11, interval: 0 },
+            axisTick: { alignWithLabel: true }
+        },
+        yAxis: {
+            type: 'value',
+            axisLabel: { formatter: v => v >= 10000 ? (v / 10000).toFixed(0) + 'w' : v }
+        },
+        series: [
+            { name: '充值总额', type: 'bar', data: data.map(d => d.recharge), itemStyle: { color: '#60a5fa' }, barGap: '0%' },
+            { name: '消费总额', type: 'bar', data: data.map(d => d.consume), itemStyle: { color: '#2563eb' } },
+            { name: '退款总额', type: 'bar', data: data.map(d => d.refund), itemStyle: { color: '#f87171' } },
+            { name: '实际支出', type: 'line', data: data.map(d => d.actual), smooth: true, itemStyle: { color: '#059669' }, lineStyle: { width: 3 }, symbol: 'circle', symbolSize: 8, z: 10 }
+        ]
+    };
+    chartInstance.setOption(option);
+    setTimeout(() => chartInstance && chartInstance.resize(), 0);
+}
+
+/** 关闭图表弹窗 */
+function closeChart() {
+    if (chartModal) chartModal.classList.remove('show');
+    if (chartInstance) { chartInstance.dispose(); chartInstance = null; }
+}
+
+/* ============================================================
+ *  文件选择 & 主流程
+ * ============================================================ */
+
+/** 当前已选择的文件列表 */
+let selectedFiles = [];
+
+/**
+ * 处理文件选择事件
+ */
+document.getElementById('file-input').addEventListener('change', async function(e) {
+    const files = [...e.target.files];
+    // 过滤：跳过 ~$ 临时文件和示例文件
+    const valid = files.filter(f => !f.name.startsWith('~$') && !f.name.includes('示例'));
+
+    if (!valid.length) {
+        alert('没有有效的 Excel 文件，请检查文件是否被 Excel 打开（临时文件以 ~$ 开头会被跳过）');
+        return;
+    }
+
+    selectedFiles = valid;
+    updateUploadUI();
+
+    // 显示文件名
+    const fileListEl = document.getElementById('file-list');
+    fileListEl.innerHTML = valid.map(f => `<div class="file-item">📄 ${f.name}（${(f.size/1024).toFixed(1)} KB）</div>`).join('');
+    fileListEl.innerHTML += '<div style="margin-top:8px;color:#3b82f6;font-weight:500;">⏳ 正在解析数据，请稍候...</div>';
+
+    // 并行读取所有文件
+    const datasets = [];
+    for (const file of valid) {
+        const df = await loadExcelData(file);
+        if (!df.length) {
+            console.warn(`${file.name} 没有找到可用的数据`);
+            continue;
+        }
+        const matched = match_refund_orders(df);
+        const rechargeDaily = aggregate_recharge(df);
+        const summary = build_summary(matched, rechargeDaily);
+        datasets.push({
+            name: file.name.replace(/\.(xlsx|xls)$/i, ''),
+            file: file.name,
+            matched,
+            summary
+        });
+    }
+
+    if (!datasets.length) {
+        fileListEl.innerHTML += '<div style="margin-top:8px;color:#dc2626;">❌ 所有文件都没有有效的数据，请检查表头是否包含：订单、交易类型、交易金额(个)、状态、资金操作人、时间</div>';
+        return;
+    }
+
+    // 渲染
+    renderAll(datasets);
+    fileListEl.innerHTML += `<div style="margin-top:8px;color:#059669;font-weight:500;">✅ 解析完成！共 ${datasets.length} 个数据源</div>`;
+});
+
+/**
+ * 更新上传区 UI 状态
+ */
+function updateUploadUI() {
+    const card = document.getElementById('upload-card');
+    const refreshBtn = document.getElementById('refresh-btn');
+    if (selectedFiles.length) {
+        card.classList.add('has-files');
+        refreshBtn.style.display = 'inline-block';
+    } else {
+        card.classList.remove('has-files');
+        refreshBtn.style.display = 'none';
+    }
+}
+
+/**
+ * 清空已选文件，允许重新选择
+ */
+function clearAndReselect() {
+    selectedFiles = [];
+    document.getElementById('file-input').value = '';
+    document.getElementById('file-list').innerHTML = '';
+    document.getElementById('source-tabs').innerHTML = '';
+    document.getElementById('panels').innerHTML = '';
+    document.getElementById('source-tabs').style.display = 'none';
+    updateUploadUI();
+}
+</script>
+</body>
+</html>

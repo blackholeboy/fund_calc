@@ -1,23 +1,21 @@
-# 数据目录：Excel 账单文件，不上传（涉及业务数据隐私）
+# 用户数据 —— 不进仓库
 SheetData/
+fund_detail.xlsx
 *.xlsx
 !fund_detail_示例.xlsx
 
-# 生成文件：运行后自动产出，不需要版本管理
-fund_report.html
-
-# Mac 垃圾文件
+# macOS 垃圾
 .DS_Store
 __MACOSX/
 
-# 压缩包产物（打包脚本生成的 zip）
-*.zip
+# 临时文件
+~$*
+*.tmp
 
-# Python 缓存
+# 打包产物
+fund_calc.zip
+
+# Python
 __pycache__/
 *.pyc
-
-# IDE 配置
-.idea/
-.vscode/
-*.swp
+.venv/
